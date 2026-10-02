@@ -600,23 +600,28 @@ Key controls include:
 - PII masking.
 - Column-level lineage.
 
-Example lineage:
 
-    Oracle.transactions.amount
-            |
-            v
-    S3 Bronze
-            |
-            v
-    Silver transactions.amount
-            |
-            v
-    Gold.customer_health_scorecard.avg_transaction_amount
-            |
-            v
-    BI Dashboard
+Example column-level lineage:
 
-OpenLineage-compatible instrumentation can be used with Airflow and Spark.
+        Oracle.transactions.amount
+                |
+                v
+        Bronze.transactions.amount
+                |
+                v
+        Silver.transactions.amount
+                |
+                v
+        AVG(ABS(amount))
+        GROUP BY customer_id, score_month, channel
+                |
+                v
+        Gold.customer_health_scorecard.avg_transaction_amount_by_channel
+                |
+                v
+        BI Customer Health Dashboard
+
+Open Lineage compatible instrumentation can be used with Airflow and Spark.
 
 ## 25. Hot / Warm / Cold Storage
 
