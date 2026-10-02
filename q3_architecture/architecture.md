@@ -193,18 +193,25 @@ Main datasets include:
 
 ### Account Balance Snapshot
 
-Historical account level balances used by Q1.
+The Q1 PySpark pipeline produces an incremental, conformed account snapshot in the Silver layer.
 
-Example:
+Example Silver dataset:
 
-`gold.account_balance_snapshot`
+`silver.account_snapshot`
 
 Partitioned by:
 
 `snapshot_date`
 
-The Q1 PySpark pipeline writes successful account snapshots into this layer.
+The Silver account snapshot contains standardized account-level balances and cumulative transaction effects produced by the Q1 transformation.
 
+The Q2 analytical layer then publishes the governed business-ready representation:
+
+`gold.account_balance_snapshot`
+
+This Gold dataset is used by the Customer Health Scorecard and regulatory analytics.
+
+This separation keeps Q1 transformation output in Silver while reserving Gold for business-ready and regulatory-ready datasets.
 ### Customer Health Scorecard
 
 Customer level monthly analytical view used by Q2.
@@ -533,25 +540,42 @@ Failed quality checks should prevent downstream publication where appropriate.
 
 The platform should maintain column level lineage from source systems to final analytical outputs.
 
-Example lineage:
+Example column-level lineage:
 
-`Oracle.transactions.amount`
+```text
+Oracle.transactions.amount
+        |
+        v
+Bronze.transactions.amount
+        |
+        v
+Silver.transactions.amount
+        |
+        v
+ABS(amount)
+        |
+        v
+AVG(ABS(amount))
+GROUP BY customer_id, score_month, channel
+        |
+        v
+Gold.customer_health_scorecard.avg_transaction_amount_by_channel
+        |
+        v
+BI Customer Health Dashboard
 
-→
 
-`S3 Bronze transactions.amount`
+Transformation logic:
 
-→
+AVG(ABS(amount))
+GROUP BY customer_id, score_month, channel
 
-`Silver transactions.amount`
 
-→
-
-`Gold.customer_health_scorecard.avg_transaction_amount`
-
-→
-
-`BI Customer Health Dashboard`
+The lineage captures not only the source and target columns, but also the transformation applied between them.
+For the Customer Health Scorecard, the source transaction amount is standardized through the Bronze and Silver layers, converted to transaction magnitude using ABS(amount), and aggregated by customer, reporting month, and transaction channel.
+The resulting channel-level metrics are stored in:
+gold.customer_health_scorecard.avg_transaction_amount_by_channel
+This provides traceability from the original Oracle transaction amount to the customer-facing BI metric.
 
 Lineage should also identify:
 
@@ -579,10 +603,10 @@ Oracle / Transaction Source
 → Bronze
 → PySpark Incremental Transformation
 → Data Quality Checks
-→ Account Snapshot
-→ Gold
+→ Silver Account Snapshot
 → Airflow Success
 → Credit Scoring Trigger
+
 
 Key Q1 design principles:
 
@@ -608,7 +632,7 @@ The production implementation should use managed secrets rather than credentials
 
 ## 16. Q2 Integration
 
-Q2 consumes the conformed Silver data and Q1 Gold account snapshots.
+Q2 consumes conformed Silver data and the curated Gold account balance snapshot produced from the Q1 Silver snapshot.
 
 Customer Health Scorecard flow:
 

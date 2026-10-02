@@ -344,6 +344,45 @@ The credit scoring workflow is triggered only after the account snapshot task su
 
 In this assessment implementation, `trigger_credit_scoring` is an orchestration placeholder. In production it would invoke the actual credit scoring workflow or job.
 
+
+### Credit Scoring 30-Minute SLA
+
+The production pipeline must ensure that the credit scoring workflow starts within 30 minutes after the account snapshot succeeds.
+
+The SLA is monitored using the snapshot task completion timestamp and the downstream credit scoring start timestamp:
+
+```text
+credit_scoring_start_time - snapshot_success_time <= 30 minutes
+
+Airflow should record both timestamps as task metadata or execution metrics.
+If the downstream workflow has not started within the 30-minute SLA window, the monitoring layer should raise an SLA-breach alert to the data engineering/on-call channel.
+The monitoring flow is:
+
+Account Snapshot SUCCESS
+        |
+        v
+Record snapshot_success_time
+        |
+        v
+Trigger Credit Scoring
+        |
+        v
+Record credit_scoring_start_time
+        |
+        v
+Check elapsed time
+        |
+   +----+----+
+   |         |
+ <= 30 min  > 30 min
+   |         |
+   v         v
+  PASS    SLA BREACH
+             |
+             v
+       Alert / Incident
+
+The current assessment implementation does not execute the actual credit scoring system, so the SLA monitoring is documented as a production requirement rather than claimed as an executed end-to-end measurement.
 ---
 
 ## 13. Failure Handling

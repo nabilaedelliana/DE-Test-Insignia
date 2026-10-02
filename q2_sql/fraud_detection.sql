@@ -151,17 +151,19 @@ all_detections AS (
 
 SELECT
     customer_id,
-    txn_id,
-    account_id,
-    txn_date,
-    amount,
-    channel,
-    detection_rule,
-    rule_metric,
-    rule_description
+    detection_rule AS alert_type,
+    txn_date::DATE AS alert_date,
+    jsonb_build_object(
+        'txn_id', txn_id,
+        'account_id', account_id,
+        'amount', amount,
+        'channel', channel,
+        'rule_metric', rule_metric,
+        'rule_description', rule_description
+    ) AS details_json
 FROM all_detections
 ORDER BY
-    txn_date,
+    alert_date,
     customer_id,
-    txn_id,
-    detection_rule;
+    alert_type,
+    txn_date, txn_id;

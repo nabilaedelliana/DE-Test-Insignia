@@ -191,7 +191,27 @@ The `Index Only Scan` and zero heap fetches indicate that PostgreSQL was able to
 
 ## 5. Incremental Refresh Strategy
 
-The scorecard is maintained as a physical Gold table instead of relying on a full PostgreSQL materialized-view refresh.
+### Production choice: dbt incremental model
+
+For the production implementation, the preferred approach is a **dbt incremental model**.
+
+The three alternatives considered are:
+
+| Option | Consideration |
+|---|---|
+| Snowflake Dynamic Tables | Good for automatically maintained derived tables, but introduces a Snowflake-specific implementation and is not aligned with the PostgreSQL implementation used for this assessment. |
+| dbt Incremental Model | Well suited to transformation-heavy analytical models where only affected records need to be rebuilt. It also provides SQL-based transformations, testing, documentation, and lineage capabilities. |
+| PostgreSQL Materialized View | Simple for local PostgreSQL workloads, but a standard materialized-view refresh generally requires refreshing the materialized result rather than selectively rebuilding affected customer-month records. |
+
+**Selected approach: dbt incremental model.**
+
+The customer health scorecard is transformation-heavy and its natural incremental grain is:
+
+`customer_id + score_month`
+
+Therefore, when new transactions, account snapshots, or credit-score data arrive, the production pipeline can identify affected customer-month keys and rebuild only those records.
+
+The local PostgreSQL implementation demonstrates the same incremental processing pattern without requiring a dbt runtime.
 
 A control table is maintained:
 
@@ -206,18 +226,38 @@ It stores:
 
 The incremental refresh pattern is:
 
-1. Identify affected customer-month partitions from newly arrived data.
-2. Delete/rebuild only those affected months.
-3. Insert the deterministic transformation results for those months.
-4. Update the refresh control state only after successful completion.
-5. Commit the transaction.
+1. Identify newly arrived source data using ingestion watermarks.
+2. Determine affected `customer_id + score_month` keys.
+3. Recalculate only those affected customer-month records.
+4. Merge the deterministic results into the Gold scorecard.
+5. Update the refresh control state only after successful completion.
+6. Commit the transaction.
 
 This avoids rebuilding the entire historical scorecard for every incremental load.
 
-The refresh operation is idempotent because rerunning the same affected month replaces the existing Gold rows with the same deterministic transformation.
+The transformation is idempotent because rerunning the same affected customer-month keys produces the same deterministic Gold records.
 
----
+### Why dbt incremental is appropriate
 
+The scorecard contains CTEs, window functions, joins, aggregation, and business rules. These transformations are more naturally maintained as a version-controlled analytical model than as a simple materialized-view definition.
+
+A production dbt implementation would conceptually use an incremental predicate based on the affected reporting period and customer keys. For example:
+
+```sql
+{{ config(
+    materialized='incremental',
+    unique_key=['score_month', 'customer_id']
+) }}
+
+-- transformation logic
+
+{% if is_incremental() %}
+WHERE score_month >= (
+    SELECT MAX(score_month)
+    FROM {{ this }}
+)
+{% endif %}
+The exact incremental predicate should be expanded in production to account for late-arriving transactions and corrections. The local PostgreSQL implementation therefore uses an explicit affected-key refresh pattern rather than pretending that the local environment is running dbt.
 ## 6. Production Optimization Considerations
 
 For production scale, additional optimization can include:
