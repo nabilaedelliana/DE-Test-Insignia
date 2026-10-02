@@ -371,11 +371,7 @@ This allows Real time clickstream data to be joined with historical account and 
 
 Example:
 
-Mobile Event
-→ customer_id
-→ Silver Customer
-→ Account / Transaction Data
-→ Gold Customer Analytics
+Mobile Event → customer_id → Silver Customer → Account / Transaction Data → Gold Customer Analytics
 
 This enables use cases such as:
 
@@ -599,13 +595,7 @@ Q1 is implemented as an incremental PySpark account snapshot pipeline.
 
 Flow:
 
-Oracle / Transaction Source
-→ Bronze
-→ PySpark Incremental Transformation
-→ Data Quality Checks
-→ Silver Account Snapshot
-→ Airflow Success
-→ Credit Scoring Trigger
+Oracle / Transaction Source → Bronze → PySpark Incremental Transformation → Data Quality Checks → Silver Account Snapshot → Airflow Success → Credit Scoring Trigger
 
 
 Key Q1 design principles:
@@ -671,6 +661,30 @@ The Q2 PostgreSQL implementation demonstrates:
 ## 17. Cost Allocation
 
 The target platform budget is approximately $50,000/month.
+
+### Budget Estimation Methodology
+
+The $50,000/month budget is a high level planning estimate rather than an exact cloud bill. The assessment provides workload characteristics but does not provide enough infrastructure parameters, such as retention volume, cluster size, node count, concurrency, query frequency, or storage growth, to calculate an exact monthly cloud invoice.
+
+The estimate was therefore built using a workload-driven allocation approach:
+
+1. Identify the major workload drivers:
+   - 2M+ core banking transactions per day
+   - Up to 50K clickstream events/sec
+   - Batch PySpark processing
+   - Databricks-based credit scoring
+   - Analytical and BI workloads
+   - Regulatory governance, lineage, monitoring, and security
+
+2. Map each workload driver to its primary cloud cost category:
+   - High-volume clickstream → Kafka / streaming
+   - Batch and ML processing → Spark / Databricks
+   - Historical and raw data retention → object storage / backup
+   - Analytical queries and BI → warehouse / serving
+   - Pipeline scheduling and data integration → orchestration / integration
+   - Auditability and compliance → monitoring / governance / security
+
+3. Allocate the $50K monthly budget according to the expected relative consumption of each category, while reserving a contingency amount for workload variability and unexpected usage.
 
 Illustrative allocation:
 
