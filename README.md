@@ -696,7 +696,7 @@ The resulting allocation is:
 | Area | Monthly Budget | Rationale |
 |---|---:|---|
 | Object storage / backup | $5,000 | Raw, Bronze, Silver, Gold, backup, and historical data retention |
-| Kafka / streaming | $10,000 | High-throughput clickstream ingestion and real-time processing |
+| Kafka / streaming | $10,000 | High clickstream ingestion and real time processing |
 | Spark / Databricks | $12,000 | Batch ETL, transformations, and credit-scoring workloads |
 | Warehouse / serving | $10,000 | Analytical queries, scorecards, BI, and serving workloads |
 | Orchestration / integration | $4,000 | Airflow/managed orchestration, scheduling, and source integration |
