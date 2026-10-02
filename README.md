@@ -667,24 +667,46 @@ Lifecycle policies can automatically transition older data to lower-cost storage
 
 ## 26. Cloud Budget
 
-The proposed architecture targets approximately:
+### Budget Estimation Methodology
 
-    $50,000/month
+The $50,000/month budget is a high level planning estimate rather than an exact cloud bill. The assessment provides workload characteristics but does not provide enough infrastructure parameters, such as retention volume, cluster size, node count, concurrency, query frequency, or storage growth, to calculate an exact monthly cloud invoice.
 
-Illustrative allocation:
+The estimate was therefore built using a workload-driven allocation approach:
 
-| Area | Budget |
-|---|---:|
-| Object storage / backup | $5,000 |
-| Kafka / streaming | $10,000 |
-| Spark / Databricks | $12,000 |
-| Warehouse / serving | $10,000 |
-| Orchestration / integration | $4,000 |
-| Monitoring / governance / security | $5,000 |
-| Contingency | $4,000 |
-| **Total** | **$50,000** |
+1. Identify the major workload drivers:
+   - 2M+ core banking transactions per day
+   - Up to 50K clickstream events/sec
+   - Batch PySpark processing
+   - Databricks-based credit scoring
+   - Analytical and BI workloads
+   - Regulatory governance, lineage, monitoring, and security
 
-The allocation is illustrative and should be validated against actual workload characteristics and cloud pricing.
+2. Map each workload driver to its primary cloud cost category:
+   - High volume clickstream → Kafka / streaming
+   - Batch and ML processing → Spark / Databricks
+   - Historical and raw data retention → object storage / backup
+   - Analytical queries and BI → warehouse / serving
+   - Pipeline scheduling and data integration → orchestration / integration
+   - Auditability and compliance → monitoring / governance / security
+
+3. Allocate the $50K monthly budget according to the expected relative consumption of each category, while reserving a contingency amount for workload variability and unexpected usage.
+
+The resulting allocation is:
+
+| Area | Monthly Budget | Rationale |
+|---|---:|---|
+| Object storage / backup | $5,000 | Raw, Bronze, Silver, Gold, backup, and historical data retention |
+| Kafka / streaming | $10,000 | High-throughput clickstream ingestion and real-time processing |
+| Spark / Databricks | $12,000 | Batch ETL, transformations, and credit-scoring workloads |
+| Warehouse / serving | $10,000 | Analytical queries, scorecards, BI, and serving workloads |
+| Orchestration / integration | $4,000 | Airflow/managed orchestration, scheduling, and source integration |
+| Monitoring / governance / security | $5,000 | Data quality, lineage, logging, audit, IAM, encryption, and monitoring |
+| Contingency | $4,000 | Capacity variation, unexpected workload growth, and operational buffer |
+| **Total** | **$50,000** | |
+
+This allocation should be refined during implementation using actual workload measurements such as data volume, storage growth, Kafka throughput, compute hours, query concurrency, retention period, and job execution frequency.
+
+For production, the estimate would be validated using the selected cloud provider's pricing calculator and actual workload benchmarks before infrastructure provisioning.
 
 # 27. Project Structure
 
