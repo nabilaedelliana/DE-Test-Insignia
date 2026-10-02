@@ -224,7 +224,7 @@ Run:
 
     pytest -q
 
-# Q2 — PostgreSQL Analytics
+# Q2. PostgreSQL Analytics
 
 ## 10. Objective
 
