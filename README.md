@@ -208,6 +208,8 @@ The DAG includes:
 
 The current credit-scoring task is a placeholder integration point representing the production downstream Databricks/ML workflow.
 
+In production, the credit-scoring workflow must start within 30 minutes after the account snapshot succeeds. The SLA is measured from snapshot success time to credit-scoring workflow start time, with an alert raised when the 30-minute threshold is breached.
+
 ## 9. Q1 Testing
 
 Unit tests are located under:
@@ -284,11 +286,17 @@ A customer-month is flagged when:
 
 ## 12. Balance Snapshot Integration
 
-The Q1 account snapshot is integrated into PostgreSQL as:
+The production architecture places the Q1 account snapshot in the Silver layer as:
+
+    silver.account_snapshot
+
+partitioned by `snapshot_date`.
+
+For the local PostgreSQL implementation, the Q1 snapshot is materialized into:
 
     gold.account_balance_snapshot
 
-This allows the Q2 scorecard to consume the account snapshot produced by Q1.
+This allows the Q2 scorecard to consume the curated account balance snapshot produced from Q1.
 
 The snapshot is currently available for:
 
@@ -413,6 +421,8 @@ The project defines:
 
 to maintain pipeline state for incremental scorecard refreshes.
 
+The preferred production implementation is a dbt incremental model using `customer_id` and `score_month` as the logical unique key. The local PostgreSQL implementation demonstrates the same affected-customer-month refresh pattern without requiring the dbt runtime.
+
 Production refresh strategy:
 
 1. Identify newly affected months.
@@ -463,7 +473,8 @@ The architecture follows a medallion-style design:
 
 The detailed architecture diagram is provided separately:
 
-    q3_architecture/a_wide_detailed_infographic_architecture_diagram.png
+    q3_architecture/Q3 Platform Architecture New.png
+    q3_architecture/Q3 Platform Architecture New.drawio
 
 The architecture documentation is:
 
